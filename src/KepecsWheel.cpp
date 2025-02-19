@@ -1,4 +1,8 @@
+#include <stdio.h>
 #include "KepecsWheel.h"
+
+// Initialize static member
+RTC_DATA_ATTR uint32_t KepecsWheel::_wakeupCount = 0;
 
 KepecsWheel::KepecsWheel()
 {
@@ -10,6 +14,17 @@ bool KepecsWheel::begin()
     esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
     _isWakeFromSleep = (wakeup_reason == ESP_SLEEP_WAKEUP_TIMER);
     Serial.printf("Wakeup reason: %d\n", wakeup_reason);
+
+    // Reset counter on hard reset, increment on timer wakeup
+    if (!_isWakeFromSleep)
+    {
+        resetWakeupCount();
+    }
+    else
+    {
+        incrementWakeupCount();
+    }
+    Serial.printf("Wakeup count: %d\n", _wakeupCount);
 
     SPI.begin(SCK, MISO, MOSI, SD_CS);
     if (SD.begin(SD_CS, SPI, 1000000))
@@ -74,7 +89,7 @@ bool KepecsWheel::logData()
         return false;
     }
 
-    DateTime now = getDateTime();
+    DateTime now = _rtc.now();
     _minFreeHeap = ESP.getMinFreeHeap();
 
     char datetime[20];
@@ -107,7 +122,11 @@ void KepecsWheel::sleep(int seconds)
 
 String KepecsWheel::getCurrentFilename()
 {
-    return "/data.txt";
+    DateTime now = _rtc.now();
+    char filename[20];
+    snprintf(filename, sizeof(filename), "/WHEEL_%04d%02d%02d.csv",
+             now.year(), now.month(), now.day());
+    return String(filename);
 }
 
 bool KepecsWheel::createFile(String filename)
@@ -138,8 +157,29 @@ bool KepecsWheel::createFile(String filename)
     return false;
 }
 
-DateTime KepecsWheel::getDateTime()
+void KepecsWheel::adjustRTC(uint32_t timestamp)
 {
-    // return DateTime(RTC.now());
-    return DateTime(2024, 3, 14, 12, 34, 56);
+    _rtc.adjustRTC(timestamp);
+}
+
+void KepecsWheel::resetWakeupCount()
+{
+    _wakeupCount = 0;
+}
+
+void KepecsWheel::incrementWakeupCount()
+{
+    _wakeupCount++;
+}
+
+uint32_t KepecsWheel::getWakeupCount()
+{
+    return _wakeupCount;
+}
+
+bool KepecsWheel::shouldSync(int sleepSeconds, int syncMinutes)
+{
+    // Convert everything to minutes for comparison
+    float elapsedMinutes = (float)(sleepSeconds * _wakeupCount) / 60.0;
+    return elapsedMinutes >= syncMinutes;
 }

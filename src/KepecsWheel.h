@@ -19,13 +19,18 @@ public:
     bool begin();
     bool logData();
     void sleep(int seconds);
+    void adjustRTC(uint32_t timestamp);
+    bool shouldSync(int sleepSeconds, int syncMinutes);
+    uint32_t getWakeupCount();
 
 private:
     const char *CSV_HEADER = "datetime,count,min_free_heap";
     String getCurrentFilename();
     bool createFile(String filename);
-    DateTime getDateTime();
+    void resetWakeupCount();
+    void incrementWakeupCount();
 
+    RTC_DATA_ATTR static uint32_t _wakeupCount; // Persists in RTC memory
     ULPManager _ulp;
     uint32_t _minFreeHeap; // Track minimum free heap
     bool _isWakeFromSleep;
