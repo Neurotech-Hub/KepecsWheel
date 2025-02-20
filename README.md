@@ -43,7 +43,7 @@ If you wish to modify the sketch itself, it is highly recommended to become a co
     "name": "john_doe"
   }
 }
-``
+```
 
 ### RTC
 
