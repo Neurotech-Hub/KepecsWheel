@@ -55,3 +55,4 @@ Thumbs.db
 
 # Debug logs
 *.log 
+.vscode
