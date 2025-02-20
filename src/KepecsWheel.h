@@ -21,16 +21,17 @@ public:
     void sleep(int seconds);
     void adjustRTC(uint32_t timestamp);
     bool shouldSync(int sleepSeconds, int syncMinutes);
-    uint32_t getWakeupCount();
+    uint32_t getLogCount();
+    bool reinit();
 
 private:
-    const char *CSV_HEADER = "datetime,count,min_free_heap";
+    const char *CSV_HEADER = "datetime,count";
     String getCurrentFilename();
     bool createFile(String filename);
-    void resetWakeupCount();
-    void incrementWakeupCount();
+    void resetLogCount();
+    void incrementLogCount();
 
-    RTC_DATA_ATTR static uint32_t _wakeupCount; // Persists in RTC memory
+    RTC_DATA_ATTR static uint32_t _logCount; // Persists in RTC memory
     ULPManager _ulp;
     uint32_t _minFreeHeap; // Track minimum free heap
     bool _isWakeFromSleep;
@@ -38,6 +39,7 @@ private:
     bool _isRTCInitialized;
     bool _isSDInitialized;
     bool allInitialized;
+    bool _beginFailed = false;
 };
 
 #endif // KEPECS_WHEEL_H

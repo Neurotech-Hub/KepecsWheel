@@ -2,7 +2,7 @@
 #include "KepecsWheel.h"
 
 // Initialize static member
-RTC_DATA_ATTR uint32_t KepecsWheel::_wakeupCount = 0;
+RTC_DATA_ATTR uint32_t KepecsWheel::_logCount = 0;
 
 KepecsWheel::KepecsWheel()
 {
@@ -18,13 +18,10 @@ bool KepecsWheel::begin()
     // Reset counter on hard reset, increment on timer wakeup
     if (!_isWakeFromSleep)
     {
-        resetWakeupCount();
+        resetLogCount();
     }
-    else
-    {
-        incrementWakeupCount();
-    }
-    Serial.printf("Wakeup count: %d\n", _wakeupCount);
+
+    Serial.printf("Log count: %d\n", _logCount);
 
     SPI.begin(SCK, MISO, MOSI, SD_CS);
     if (SD.begin(SD_CS, SPI, 1000000))
@@ -54,7 +51,16 @@ bool KepecsWheel::begin()
     }
 
     allInitialized = _isSDInitialized && _isRTCInitialized;
+    if (!allInitialized)
+    {
+        _beginFailed = true;
+    }
     return allInitialized;
+}
+
+bool KepecsWheel::reinit()
+{
+    return _isWakeFromSleep || _beginFailed;
 }
 
 bool KepecsWheel::logData()
@@ -98,14 +104,14 @@ bool KepecsWheel::logData()
              now.hour(), now.minute(), now.second());
 
     String dataString = String(datetime) + "," +
-                        String(_ulp.getEdgeCount()) + "," +
-                        String(_minFreeHeap);
+                        String(_ulp.getEdgeCount() / 2);
 
     Serial.println(dataString);
 
     // Write data
     bool success = dataFile.println(dataString);
     dataFile.close();
+    incrementLogCount();
     return success;
 }
 
@@ -162,24 +168,30 @@ void KepecsWheel::adjustRTC(uint32_t timestamp)
     _rtc.adjustRTC(timestamp);
 }
 
-void KepecsWheel::resetWakeupCount()
+void KepecsWheel::resetLogCount()
 {
-    _wakeupCount = 0;
+    _logCount = 0;
 }
 
-void KepecsWheel::incrementWakeupCount()
+void KepecsWheel::incrementLogCount()
 {
-    _wakeupCount++;
+    _logCount++;
 }
 
-uint32_t KepecsWheel::getWakeupCount()
+uint32_t KepecsWheel::getLogCount()
 {
-    return _wakeupCount;
+    return _logCount;
 }
 
 bool KepecsWheel::shouldSync(int sleepSeconds, int syncMinutes)
 {
     // Convert everything to minutes for comparison
-    float elapsedMinutes = (float)(sleepSeconds * _wakeupCount) / 60.0;
-    return elapsedMinutes >= syncMinutes;
+    float elapsedMinutes = (float)(sleepSeconds * _logCount) / 60.0;
+    Serial.printf("Sync check: elapsed=%.2f minutes, threshold=%d minutes\n", elapsedMinutes, syncMinutes);
+    bool shouldSync = elapsedMinutes >= syncMinutes;
+    if (shouldSync)
+    {
+        resetLogCount();
+    }
+    return shouldSync;
 }
