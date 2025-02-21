@@ -22,6 +22,7 @@ bool KepecsWheel::begin()
     }
 
     Serial.printf("Log count: %d\n", _logCount);
+    pinMode(LED_BUILTIN, OUTPUT);
 
     SPI.begin(SCK, MISO, MOSI, SD_CS);
     if (SD.begin(SD_CS, SPI, 1000000))
@@ -105,9 +106,9 @@ bool KepecsWheel::logData()
              now.hour(), now.minute(), now.second());
 
     String dataString = String(datetime) + "," +
-                        String(_ulp.getEdgeCount() / 2);
+                        String(_ulp.getEdgeCount() / 4);
 
-    Serial.println(dataString);
+    Serial.printf("\nLogging data: %s\n\n", dataString.c_str());
 
     // Write data
     bool success = dataFile.println(dataString);

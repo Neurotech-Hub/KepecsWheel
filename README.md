@@ -10,6 +10,20 @@ An ESP32-based Arduino library for monitoring and logging mouse wheel rotations 
 
 If you wish to modify the sketch itself, it is highly recommended to become a collaborator on this repository and use proper git workflows. This will reduce the risk of delpoying out of date code and makes identifying errors easier across multilpe authors.
 
+## Data Format
+
+The data is logged in a CSV file with the following format:
+
+```
+datetime,count
+```
+
+The ULP program counts the number of edges in the mouse wheel signal. Each edge is counted as 1/4 of a rotation. The edge count from the ULP is then divided by 4 to get the number of rotations and saved to the CSV file.
+
+### CSV Naming
+
+The CSV file is named as "WHEEL_YYYYMMDD_HHMMSS.csv", where `YYYYMMDD` is the date, `HHMMSS` is the time, and the `_` is a separator. A new file is created each day.
+
 ## Hublink
 
 [Hublink.cloud](https://hublink.cloud) is meant to transfer SD card content to the cloud. Your lab will have a dashboard link that should be for internal use only. The [Hublink Docs](https://hublink.cloud/docs) contain information about how format the `meta.json` file on the SD card, which is critical for:
