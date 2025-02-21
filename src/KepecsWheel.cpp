@@ -71,6 +71,7 @@ bool KepecsWheel::logData()
         Serial.println("Not waking from sleep, skipping data logging");
         return false;
     }
+    digitalWrite(LED_BUILTIN, HIGH);
 
     String currentFile = getCurrentFilename();
 
@@ -112,6 +113,7 @@ bool KepecsWheel::logData()
     bool success = dataFile.println(dataString);
     dataFile.close();
     incrementLogCount();
+    digitalWrite(LED_BUILTIN, LOW);
     return success;
 }
 
