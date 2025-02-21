@@ -10,6 +10,10 @@ An ESP32-based Arduino library for monitoring and logging mouse wheel rotations 
 
 If you wish to modify the sketch itself, it is highly recommended to become a collaborator on this repository and use proper git workflows. This will reduce the risk of delpoying out of date code and makes identifying errors easier across multilpe authors.
 
+### RTC Syncing
+
+The initial RTC setting is done by checking the compile time of the sketch. This may require clearing the Arduino cache before compiling. For example, on MacOS, this can be done by running `sudo rm -rf ~/Library/Caches/arduino/sketches` (or removing it manually). See below for details on Hublink RTC syncing.
+
 ## Data Format
 
 The data is logged in a CSV file with the following format:
@@ -59,7 +63,7 @@ The CSV file is named as "WHEEL_YYYYMMDD_HHMMSS.csv", where `YYYYMMDD` is the da
 }
 ```
 
-### RTC
+### Hublink RTC Syncing
 
 When connecting to Hublink, the RTC will be set to the current time via the `onTimestampReceived` callback.
 
