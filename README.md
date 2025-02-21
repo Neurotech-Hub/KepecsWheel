@@ -31,13 +31,13 @@ If you wish to modify the sketch itself, it is highly recommended to become a co
   },
   "wheel": {
     "sleep_time_seconds": 60,
-    "sync_every_minutes": 10,
+    "sync_every_minutes": 360,
     "sync_for_seconds": 30
   },
   "subject": {
     "id": "mouse001",
     "strain": "C57BL/6",
-    "sex": "male",
+    "sex": "male"
   },
   "experimenter": {
     "name": "john_doe"
