@@ -19,10 +19,10 @@ The initial RTC setting is done by checking the compile time of the sketch. This
 The data is logged in a CSV file with the following format:
 
 ```
-datetime,count
+datetime,battery_voltage,count
 ```
 
-The ULP program counts the number of edges in the mouse wheel signal. Each edge is counted as 1/4 of a rotation. The edge count from the ULP is then divided by 4 to get the number of rotations and saved to the CSV file.
+The ULP program counts the number of edges in the mouse wheel signal. Each edge is counted as 1/4 of a rotation. The edge count from the ULP is then divided by 4 to get the number of rotations and saved to the CSV file. Battery voltage is monitored to track power levels.
 
 ### CSV Naming
 

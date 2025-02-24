@@ -51,7 +51,37 @@ bool KepecsWheel::begin()
         _isRTCInitialized = true;
     }
 
-    allInitialized = _isSDInitialized && _isRTCInitialized;
+    // Initialize battery monitor with detailed debug
+    if (!_batteryMonitor.begin(&Wire))
+    {
+        Serial.println("  Battery: failed to begin()");
+        _isBatteryMonitorInitialized = false;
+    }
+    else
+    {
+        Serial.println("  Battery: begin() OK");
+        _isBatteryMonitorInitialized = true;
+
+        // Replace single delay with retry loop
+        const uint8_t MAX_RETRIES = 10;
+        uint8_t retries = 0;
+        float voltage = 0;
+
+        while (retries < MAX_RETRIES)
+        {
+            delay(1); // Shorter delay between attempts
+            voltage = _batteryMonitor.cellVoltage();
+            Serial.printf("  Battery init - attempt %d: %.2fV\n", retries + 1, voltage);
+
+            if (voltage > 0 && !isnan(voltage))
+            {
+                break; // Valid reading obtained
+            }
+            retries++;
+        }
+    }
+
+    allInitialized = _isSDInitialized && _isRTCInitialized && _isBatteryMonitorInitialized;
     if (!allInitialized)
     {
         _beginFailed = true;
@@ -98,15 +128,15 @@ bool KepecsWheel::logData()
     }
 
     DateTime now = _rtc.now();
-    _minFreeHeap = ESP.getMinFreeHeap();
 
     char datetime[20];
     snprintf(datetime, sizeof(datetime), "%04d-%02d-%02d %02d:%02d:%02d",
              now.year(), now.month(), now.day(),
              now.hour(), now.minute(), now.second());
 
-    String dataString = String(datetime) + "," +
-                        String(_ulp.getEdgeCount() / 4);
+    char voltageStr[8];
+    snprintf(voltageStr, sizeof(voltageStr), "%.2f", getBatteryVoltage());
+    String dataString = String(datetime) + "," + String(voltageStr) + "," + String(_ulp.getEdgeCount() / 4);
 
     Serial.printf("\nLogging data: %s\n\n", dataString.c_str());
 
@@ -121,6 +151,11 @@ bool KepecsWheel::logData()
 void KepecsWheel::sleep(int seconds)
 {
     digitalWrite(LED_BUILTIN, LOW);
+    if (_isBatteryMonitorInitialized)
+    {
+        _batteryMonitor.enableSleep(true); // Enable sleep capability
+        _batteryMonitor.sleep(true);       // Enter sleep mode
+    }
     uint64_t microseconds = (uint64_t)seconds * 1000000ULL;
     esp_sleep_enable_timer_wakeup(microseconds);
     _ulp.clearEdgeCount();
@@ -197,4 +232,14 @@ bool KepecsWheel::shouldSync(int sleepSeconds, int syncMinutes)
         resetLogCount();
     }
     return shouldSync;
+}
+
+float KepecsWheel::getBatteryVoltage()
+{
+    return _batteryMonitor.cellVoltage();
+}
+
+float KepecsWheel::getBatteryPercent()
+{
+    return _batteryMonitor.cellPercent();
 }

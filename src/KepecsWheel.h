@@ -8,6 +8,7 @@
 #include "ULPManager.h"
 #include "RTCManager.h"
 #include "Preferences.h"
+#include "Adafruit_MAX1704X.h"
 
 #define SD_CS 10       // Chip-Select of SD card slot on RTC shield
 #define LED_BUILTIN 13 // Built-in LED pin
@@ -25,7 +26,7 @@ public:
     bool reinit();
 
 private:
-    const char *CSV_HEADER = "datetime,count";
+    const char *CSV_HEADER = "datetime,battery_voltage,count";
     String getCurrentFilename();
     bool createFile(String filename);
     void resetLogCount();
@@ -33,13 +34,16 @@ private:
 
     RTC_DATA_ATTR static uint32_t _logCount; // Persists in RTC memory
     ULPManager _ulp;
-    uint32_t _minFreeHeap; // Track minimum free heap
     bool _isWakeFromSleep;
     RTCManager _rtc;
     bool _isRTCInitialized;
     bool _isSDInitialized;
     bool allInitialized;
     bool _beginFailed = false;
+    Adafruit_MAX17048 _batteryMonitor;
+    float getBatteryVoltage();
+    float getBatteryPercent();
+    bool _isBatteryMonitorInitialized;
 };
 
 #endif // KEPECS_WHEEL_H
