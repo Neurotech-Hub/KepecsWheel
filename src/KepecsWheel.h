@@ -9,9 +9,10 @@
 #include "RTCManager.h"
 #include "Preferences.h"
 #include "Adafruit_MAX1704X.h"
+#include "SharedDefs.h"
 
-#define SD_CS 10       // Chip-Select of SD card slot on RTC shield
 #define LED_BUILTIN 13 // Built-in LED pin
+extern uint8_t SD_CS;  // Make SD_CS accessible to sketches
 
 class KepecsWheel
 {
@@ -24,6 +25,7 @@ public:
     bool shouldSync(int sleepSeconds, int syncMinutes);
     uint32_t getLogCount();
     bool reinit();
+    uint8_t getSDCSPin() const { return _sdCSPin; } // Getter for SD_CS pin
 
 private:
     const char *CSV_HEADER = "datetime,battery_voltage,count";
@@ -31,6 +33,8 @@ private:
     bool createFile(String filename);
     void resetLogCount();
     void incrementLogCount();
+    RTCType detectRTCType();
+    void updateSDCSPin();
 
     RTC_DATA_ATTR static uint32_t _logCount; // Persists in RTC memory
     ULPManager _ulp;
@@ -41,6 +45,8 @@ private:
     bool allInitialized;
     bool _beginFailed = false;
     Adafruit_MAX17048 _batteryMonitor;
+    RTCType _rtcType;
+    uint8_t _sdCSPin = 10; // Default to 10, will be updated based on RTC type
     float getBatteryVoltage();
     float getBatteryPercent();
     bool _isBatteryMonitorInitialized;

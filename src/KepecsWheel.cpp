@@ -1,8 +1,57 @@
 #include <stdio.h>
 #include "KepecsWheel.h"
 
-// Initialize static member
+// Initialize static members
 RTC_DATA_ATTR uint32_t KepecsWheel::_logCount = 0;
+uint8_t SD_CS = 10; // Default to 10, will be updated based on RTC type
+
+// I2C address for RTCs
+#define RTC_ADDRESS 0x68
+
+// DS3231 temperature register
+#define DS3231_TEMP_REG 0x11
+
+void KepecsWheel::updateSDCSPin()
+{
+    if (_rtcType == RTCType::DS3231)
+    {
+        _sdCSPin = A0; // DS3231 board uses A0 for SD_CS
+        SD_CS = A0;    // Update global variable
+    }
+    else
+    {
+        _sdCSPin = 10; // PCF8523 board uses pin 10
+        SD_CS = 10;    // Update global variable
+    }
+}
+
+RTCType KepecsWheel::detectRTCType()
+{
+    // Try DS3231 temperature register first
+    Wire.beginTransmission(RTC_ADDRESS);
+    Wire.write(DS3231_TEMP_REG);
+    Wire.endTransmission();
+
+    Wire.requestFrom(RTC_ADDRESS, (uint8_t)2);
+    if (Wire.available() >= 2)
+    {
+        uint8_t msb = Wire.read();
+        uint8_t lsb = Wire.read();
+        int16_t temp = (msb << 2) | (lsb >> 6);                            // Combine MSB and LSB properly
+        Serial.printf("  RTC: temp=%d.%d°C\n", temp / 4, (temp % 4) * 25); // Convert to actual temperature
+
+        // DS3231 temperature range is -40°C to +85°C
+        if (temp >= -160 && temp <= 340) // Convert to internal units (-40*4 to 85*4)
+        {
+            Serial.println("  RTC: DS3231 detected");
+            return RTCType::DS3231;
+        }
+    }
+
+    // If no DS3231 detected, assume PCF8523
+    Serial.println("  RTC: PCF8523 detected");
+    return RTCType::PCF8523;
+}
 
 KepecsWheel::KepecsWheel()
 {
@@ -24,8 +73,18 @@ bool KepecsWheel::begin()
     Serial.printf("Log count: %d\n", _logCount);
     pinMode(LED_BUILTIN, OUTPUT);
 
-    SPI.begin(SCK, MISO, MOSI, SD_CS);
-    if (SD.begin(SD_CS, SPI, 1000000))
+    Wire.begin();
+    delay(10); // Give I2C time to stabilize
+
+    // Detect RTC type first
+    _rtcType = detectRTCType();
+
+    // Update SD_CS pin based on RTC type
+    updateSDCSPin();
+
+    // Now initialize SD with the correct CS pin
+    SPI.begin(SCK, MISO, MOSI, _sdCSPin);
+    if (SD.begin(_sdCSPin, SPI, 1000000))
     {
         Serial.println("SD Card initialized.");
         _isSDInitialized = true;
@@ -36,19 +95,26 @@ bool KepecsWheel::begin()
         _isSDInitialized = false;
     }
 
-    Wire.begin();
-    delay(10); // Give I2C time to stabilize
-
-    // Initialize RTC
-    if (!_rtc.begin())
+    // Initialize RTC based on detected type
+    if (_rtcType == RTCType::UNKNOWN)
     {
-        Serial.println("  RTC: failed");
+        Serial.println("  RTC: failed - no RTC detected");
         _isRTCInitialized = false;
     }
     else
     {
         Serial.println("  RTC: OK");
-        _isRTCInitialized = true;
+        _isRTCInitialized = _rtc.begin(_rtcType);
+
+        // Set appropriate ULP sensor pin based on RTC type
+        if (_rtcType == RTCType::DS3231)
+        {
+            _ulp.setSensorPin(GPIO_NUM_3); // DS3231 board uses GPIO3
+        }
+        else
+        {
+            _ulp.setSensorPin(GPIO_NUM_18); // PCF8523 board uses GPIO18
+        }
     }
 
     // Initialize battery monitor with detailed debug
@@ -85,6 +151,13 @@ bool KepecsWheel::begin()
     if (!allInitialized)
     {
         _beginFailed = true;
+        Serial.print("Failure reason: ");
+        if (!_isSDInitialized)
+            Serial.println("SD Card");
+        if (!_isRTCInitialized)
+            Serial.println("RTC");
+        if (!_isBatteryMonitorInitialized)
+            Serial.println("Battery Monitor");
     }
     return allInitialized;
 }
@@ -136,7 +209,16 @@ bool KepecsWheel::logData()
 
     char voltageStr[8];
     snprintf(voltageStr, sizeof(voltageStr), "%.2f", getBatteryVoltage());
-    String dataString = String(datetime) + "," + String(voltageStr) + "," + String(_ulp.getEdgeCount() / 4);
+
+    String dataString = "";
+    if (_rtcType == RTCType::DS3231)
+    {
+        dataString = String(datetime) + "," + String(voltageStr) + "," + String(_ulp.getEdgeCount() / 2);
+    }
+    else
+    {
+        dataString = String(datetime) + "," + String(voltageStr) + "," + String(_ulp.getEdgeCount() / 4);
+    }
 
     Serial.printf("\nLogging data: %s\n\n", dataString.c_str());
 

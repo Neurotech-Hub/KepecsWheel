@@ -3,13 +3,43 @@
 const char *RTCManager::_daysOfWeek[] = {
     "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
-RTCManager::RTCManager() : _isInitialized(false)
+RTCManager::RTCManager() : _pcf8523(nullptr), _ds3231(nullptr), _isInitialized(false), _rtcType(RTCType::UNKNOWN)
 {
 }
 
-bool RTCManager::begin()
+RTCManager::~RTCManager()
 {
-    if (!_rtc.begin())
+    delete _pcf8523;
+    delete _ds3231;
+}
+
+bool RTCManager::begin(RTCType type)
+{
+    _rtcType = type;
+    bool success = false;
+
+    // Clean up any existing instances
+    delete _pcf8523;
+    delete _ds3231;
+    _pcf8523 = nullptr;
+    _ds3231 = nullptr;
+
+    switch (type)
+    {
+    case RTCType::PCF8523:
+        _pcf8523 = new RTC_PCF8523();
+        success = _pcf8523->begin();
+        break;
+    case RTCType::DS3231:
+        _ds3231 = new RTC_DS3231();
+        success = _ds3231->begin();
+        break;
+    default:
+        Serial.println("Unknown RTC type");
+        return false;
+    }
+
+    if (!success)
     {
         Serial.println("Couldn't find RTC");
         return false;
@@ -30,7 +60,8 @@ bool RTCManager::begin()
         updateRTC();
         updateCompilationID();
     }
-    else if (_rtc.lostPower())
+    else if ((type == RTCType::PCF8523 && _pcf8523->lostPower()) ||
+             (type == RTCType::DS3231 && _ds3231->lostPower()))
     {
         Serial.println("RTC lost power, updating time from compilation");
         updateRTC();
@@ -47,7 +78,15 @@ DateTime RTCManager::now()
     {
         return DateTime(DEFAULT_TIMESTAMP);
     }
-    return _rtc.now();
+    switch (_rtcType)
+    {
+    case RTCType::PCF8523:
+        return _pcf8523->now();
+    case RTCType::DS3231:
+        return _ds3231->now();
+    default:
+        return DateTime(DEFAULT_TIMESTAMP);
+    }
 }
 
 void RTCManager::serialPrintDateTime()
@@ -60,12 +99,23 @@ void RTCManager::serialPrintDateTime()
 
 void RTCManager::adjustRTC(uint32_t timestamp)
 {
-    _rtc.adjust(DateTime(timestamp));
+    DateTime dt(timestamp);
+    adjustRTC(dt);
 }
 
 void RTCManager::adjustRTC(const DateTime &dt)
 {
-    _rtc.adjust(dt);
+    switch (_rtcType)
+    {
+    case RTCType::PCF8523:
+        if (_pcf8523)
+            _pcf8523->adjust(dt);
+        break;
+    case RTCType::DS3231:
+        if (_ds3231)
+            _ds3231->adjust(dt);
+        break;
+    }
 }
 
 String RTCManager::getDayOfWeek()
@@ -219,10 +269,10 @@ void RTCManager::updateRTC()
     Serial.println("Compensated time: " + String(timeStr));
 
     // Update RTC with compensated time
-    _rtc.adjust(compensatedTime);
+    adjustRTC(compensatedTime);
 
     // Verify the time was set correctly
-    DateTime currentTime = _rtc.now();
+    DateTime currentTime = now();
     char currentTimeStr[20];
     snprintf(currentTimeStr, sizeof(currentTimeStr), "%04d-%02d-%02d %02d:%02d:%02d",
              currentTime.year(), currentTime.month(), currentTime.day(),

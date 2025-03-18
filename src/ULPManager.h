@@ -7,9 +7,6 @@
 #include "soc/rtc_io_reg.h"
 #include "ulp_common.h"
 
-#define GPIO_SENSOR_PIN GPIO_NUM_18 // GPIO pin connected to the sensor
-#define RTC_GPIO_INDEX 18           // attain dynamically with: rtc_io_number_get(GPIO_SENSOR_PIN)
-
 enum
 {
     EDGE_COUNT,
@@ -24,9 +21,13 @@ public:
     void start();
     uint16_t getEdgeCount();
     void clearEdgeCount();
+    void setSensorPin(gpio_num_t pin);
 
 private:
     bool _initialized;
+    gpio_num_t _sensorPin;
+    uint8_t _rtcGpioIndex;
+    void updateRtcGpioIndex();
 };
 
 #endif // ULP_MANAGER_H

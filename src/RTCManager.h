@@ -12,7 +12,8 @@ class RTCManager
 {
 public:
     RTCManager();
-    bool begin();
+    ~RTCManager(); // Add destructor to clean up
+    bool begin(RTCType type);
 
     // Basic RTC functions
     DateTime now();
@@ -32,7 +33,9 @@ public:
     DateTime getFutureTime(int days, int hours, int minutes, int seconds);
 
 private:
-    RTC_PCF8523 _rtc;
+    RTC_PCF8523 *_pcf8523;
+    RTC_DS3231 *_ds3231;
+    RTCType _rtcType;
     Preferences _preferences;
     bool _isInitialized;
 
