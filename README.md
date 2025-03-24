@@ -2,6 +2,31 @@
 
 An ESP32-based Arduino library for monitoring and logging mouse wheel rotations in neuroscience experiments.
 
+## Wheel Types
+
+The library supports two types of KepecsWheel boards:
+
+1. **PCF8523 (Type 1)**
+   - Uses PCF8523 RTC
+   - SD card CS pin: 10
+   - ULP sensor pin: GPIO18
+   - Default for older boards
+
+2. **DS3231 (Type 2)**
+   - Uses DS3231 RTC
+   - SD card CS pin: A0
+   - ULP sensor pin: GPIO16/A2
+   - Default for newer boards
+
+To specify the wheel type in your sketch:
+```cpp
+// For DS3231 (newer) boards (default)
+KepecsWheel wheel();
+
+// For PCF8523 (older) boards
+KepecsWheel wheel(1);
+```
+
 ## Updating Firmware
 
 1. Download the KepecsWheel library for the Arduino IDE or manually clone/download the repository from [Neurotech-Hub/KepecsWheel](https://github.com/Neurotech-Hub/KepecsWheel). For downloaded libraries, go to Sketch -> Include Library -> Add .ZIP Library, or place the library in the `libraries` folder in the Arduino IDE.

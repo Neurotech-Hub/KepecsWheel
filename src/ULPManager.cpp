@@ -4,7 +4,7 @@
 // divide by 2 for single transition type
 ulp_insn_t ulp_program[20]; // Pre-allocate space for the program
 
-ULPManager::ULPManager() : _initialized(false), _sensorPin(GPIO_NUM_18), _rtcGpioIndex(18)
+ULPManager::ULPManager() : _initialized(false), _sensorPin(GPIO_NUM_16), _rtcGpioIndex(16)
 {
     updateRtcGpioIndex();
 }

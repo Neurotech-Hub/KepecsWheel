@@ -17,7 +17,7 @@ extern uint8_t SD_CS;  // Make SD_CS accessible to sketches
 class KepecsWheel
 {
 public:
-    KepecsWheel();
+    KepecsWheel(uint8_t wheelType = 2); // Default to DS3231 (type 2)
     bool begin();
     bool logData();
     void sleep(int seconds);
@@ -33,7 +33,6 @@ private:
     bool createFile(String filename);
     void resetLogCount();
     void incrementLogCount();
-    RTCType detectRTCType();
     void updateSDCSPin();
 
     RTC_DATA_ATTR static uint32_t _logCount; // Persists in RTC memory

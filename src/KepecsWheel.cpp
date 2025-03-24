@@ -11,6 +11,12 @@ uint8_t SD_CS = 10; // Default to 10, will be updated based on RTC type
 // DS3231 temperature register
 #define DS3231_TEMP_REG 0x11
 
+KepecsWheel::KepecsWheel(uint8_t wheelType)
+{
+    // Set RTC type based on wheel type
+    _rtcType = (wheelType == 2) ? RTCType::DS3231 : RTCType::PCF8523;
+}
+
 void KepecsWheel::updateSDCSPin()
 {
     if (_rtcType == RTCType::DS3231)
@@ -23,39 +29,6 @@ void KepecsWheel::updateSDCSPin()
         _sdCSPin = 10; // PCF8523 board uses pin 10
         SD_CS = 10;    // Update global variable
     }
-}
-
-RTCType KepecsWheel::detectRTCType()
-{
-    // Try DS3231 temperature register first
-    Wire.beginTransmission(RTC_ADDRESS);
-    Wire.write(DS3231_TEMP_REG);
-    Wire.endTransmission();
-
-    Wire.requestFrom(RTC_ADDRESS, (uint8_t)2);
-    if (Wire.available() >= 2)
-    {
-        uint8_t msb = Wire.read();
-        uint8_t lsb = Wire.read();
-        int16_t temp = (msb << 2) | (lsb >> 6);                            // Combine MSB and LSB properly
-        Serial.printf("  RTC: temp=%d.%d°C\n", temp / 4, (temp % 4) * 25); // Convert to actual temperature
-
-        // DS3231 temperature range is -40°C to +85°C
-        if (temp >= -160 && temp <= 340) // Convert to internal units (-40*4 to 85*4)
-        {
-            Serial.println("  RTC: DS3231 detected");
-            return RTCType::DS3231;
-        }
-    }
-
-    // If no DS3231 detected, assume PCF8523
-    Serial.println("  RTC: PCF8523 detected");
-    return RTCType::PCF8523;
-}
-
-KepecsWheel::KepecsWheel()
-{
-    // Constructor implementation will be added as needed
 }
 
 bool KepecsWheel::begin()
@@ -76,9 +49,6 @@ bool KepecsWheel::begin()
     Wire.begin();
     delay(10); // Give I2C time to stabilize
 
-    // Detect RTC type first
-    _rtcType = detectRTCType();
-
     // Update SD_CS pin based on RTC type
     updateSDCSPin();
 
@@ -95,26 +65,18 @@ bool KepecsWheel::begin()
         _isSDInitialized = false;
     }
 
-    // Initialize RTC based on detected type
-    if (_rtcType == RTCType::UNKNOWN)
+    // Initialize RTC based on type
+    Serial.printf("  RTC: Initializing %s\n", (_rtcType == RTCType::DS3231) ? "DS3231" : "PCF8523");
+    _isRTCInitialized = _rtc.begin(_rtcType);
+
+    // Set appropriate ULP sensor pin based on RTC type
+    if (_rtcType == RTCType::DS3231)
     {
-        Serial.println("  RTC: failed - no RTC detected");
-        _isRTCInitialized = false;
+        _ulp.setSensorPin(GPIO_NUM_16); // v2 DS3231 board uses GPIO16/A2
     }
     else
     {
-        Serial.println("  RTC: OK");
-        _isRTCInitialized = _rtc.begin(_rtcType);
-
-        // Set appropriate ULP sensor pin based on RTC type
-        if (_rtcType == RTCType::DS3231)
-        {
-            _ulp.setSensorPin(GPIO_NUM_3); // DS3231 board uses GPIO3
-        }
-        else
-        {
-            _ulp.setSensorPin(GPIO_NUM_18); // PCF8523 board uses GPIO18
-        }
+        _ulp.setSensorPin(GPIO_NUM_18); // v1 PCF8523 board uses GPIO18
     }
 
     // Initialize battery monitor with detailed debug
@@ -211,14 +173,7 @@ bool KepecsWheel::logData()
     snprintf(voltageStr, sizeof(voltageStr), "%.2f", getBatteryVoltage());
 
     String dataString = "";
-    if (_rtcType == RTCType::DS3231)
-    {
-        dataString = String(datetime) + "," + String(voltageStr) + "," + String(_ulp.getEdgeCount() / 2);
-    }
-    else
-    {
-        dataString = String(datetime) + "," + String(voltageStr) + "," + String(_ulp.getEdgeCount() / 4);
-    }
+    dataString = String(datetime) + "," + String(voltageStr) + "," + String(_ulp.getEdgeCount() / 4);
 
     Serial.printf("\nLogging data: %s\n\n", dataString.c_str());
 
