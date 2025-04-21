@@ -173,7 +173,7 @@ bool KepecsWheel::logData()
     snprintf(voltageStr, sizeof(voltageStr), "%.2f", getBatteryVoltage());
 
     String dataString = "";
-    dataString = String(datetime) + "," + String(voltageStr) + "," + String(_ulp.getEdgeCount() / 4);
+    dataString = String(datetime) + "," + String(voltageStr) + "," + String(_ulp.getEdgeCount() / 2);
 
     Serial.printf("\nLogging data: %s\n\n", dataString.c_str());
 
