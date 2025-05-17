@@ -19,9 +19,6 @@ void onTimestampReceived(uint32_t timestamp)
 void setup()
 {
   Serial.begin(115200);
-  while (!Serial)
-    delay(10);
-
   Serial.println("KepecsWheel Basic Example");
 
   if (!wheel.begin())
