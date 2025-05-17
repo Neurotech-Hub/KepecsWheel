@@ -63,11 +63,11 @@ void ULPManager::start()
 
         // RTC clock on the ESP32-S3 is 17.5MHz, delay 0xFFFF = 3.74 ms
         I_DELAY(0xFFFF), // debounce
-        I_DELAY(0xFFFF), // debounce
-        I_DELAY(0xFFFF), // debounce
-        I_DELAY(0xFFFF), // debounce
-        I_DELAY(0xFFFF), // debounce
-        I_DELAY(0xFFFF), // debounce
+        // I_DELAY(0xFFFF), // debounce
+        // I_DELAY(0xFFFF), // debounce
+        // I_DELAY(0xFFFF), // debounce
+        // I_DELAY(0xFFFF), // debounce
+        // I_DELAY(0xFFFF), // debounce
 
         M_BX(1), // Loop back to label 1
     };
