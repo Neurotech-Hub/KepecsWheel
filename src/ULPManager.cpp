@@ -40,7 +40,8 @@ void ULPManager::start()
     const ulp_insn_t program_template[] = {
         // Initialize transition counter and previous state
         I_MOVI(R3, 0), // R3 <- 0 (reset the transition counter)
-        I_MOVI(R2, 1), // R2 <- 0 (previous state, assume LOW initially)
+        I_RD_REG(RTC_GPIO_IN_REG, _rtcGpioIndex + RTC_GPIO_IN_NEXT_S, _rtcGpioIndex + RTC_GPIO_IN_NEXT_S),
+        I_MOVI(R2, R0), // R2 <- R0, initial state is variable due to latching sensor
 
         // Main loop
         M_LABEL(1),

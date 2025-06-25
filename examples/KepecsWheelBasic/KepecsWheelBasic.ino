@@ -3,7 +3,7 @@
 
 // Initialize KepecsWheel with wheel type 2 (DS3231)
 // Use wheel type 1 for PCF8523
-KepecsWheel wheel(); // use wheel v2 by default, call wheel(1) for v1 wheels
+KepecsWheel wheel; // Default constructor uses type 2 (DS3231)
 Hublink hublink(SD_CS);
 
 int SLEEP_TIME_SECONDS = 10;
