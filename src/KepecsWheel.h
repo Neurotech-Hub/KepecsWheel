@@ -26,6 +26,8 @@ public:
     uint32_t getLogCount();
     bool reinit();
     uint8_t getSDCSPin() const { return _sdCSPin; } // Getter for SD_CS pin
+    float getBatteryVoltage();
+    float getBatteryPercent();
 
 private:
     const char *CSV_HEADER = "datetime,battery_voltage,count";
@@ -46,8 +48,6 @@ private:
     Adafruit_MAX17048 _batteryMonitor;
     RTCType _rtcType;
     uint8_t _sdCSPin = 10; // Default to 10, will be updated based on RTC type
-    float getBatteryVoltage();
-    float getBatteryPercent();
     bool _isBatteryMonitorInitialized;
 };
 

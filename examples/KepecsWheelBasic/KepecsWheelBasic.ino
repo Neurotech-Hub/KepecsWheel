@@ -42,6 +42,7 @@ void setup()
   // uses logCount to determine if it should sync
   if (wheel.shouldSync(SLEEP_TIME_SECONDS, SYNC_EVERY_MINUTES))
   {
+    hublink.setBatteryLevel((int)wheel.getBatteryPercent());
     hublink.sync(SYNC_FOR_SECONDS); // force sync
   }
 
